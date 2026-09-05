@@ -17,15 +17,15 @@ the result back into text. It trains end-to-end on the bundled
 and a cosine learning-rate schedule, then saves an Orbax checkpoint you can generate
 from or serve in a Gradio UI.
 
-This project is a packaged, runnable version of the model developed in the
-DeepLearning.AI *"LLMs with JAX"* course — reorganised from teaching notebooks into a
-clean, installable Python package with a command-line interface.
+It's a complete, installable Python package — model, training loop, sampler,
+checkpointing, and a Gradio demo — driven by a single `python -m minigpt` entry point.
+The whole thing is built to run on a laptop CPU with no GPU, no WSL, and no manual
+setup: clone, `uv sync`, train.
 
 ![Demo](assets/demo.gif)
 
-> The output above is from the model trained on the bundled 1,000-story slice —
-> word-like and sentence-shaped, but not fully coherent (see the note under
-> [Train](#train)).
+> Trained on the bundled 1,000-story slice. Real story-like prose needs the full
+> TinyStories corpus.
 
 ## What it demonstrates
 
@@ -36,9 +36,12 @@ clean, installable Python package with a command-line interface.
   with a warmup-cosine LR schedule, and a **padding-masked** cross-entropy loss so the
   model learns real tokens instead of padding.
 - **Autoregressive sampling** — temperature scaling with optional top-k, proper PRNG
-  key splitting, and a greedy `argmax` fallback at `temperature 0`. Generation uses a
-  **KV cache** (`decode=True`) so each new token runs a single-token, `jit`-compiled
-  forward step instead of recomputing the whole context window — a large speedup on CPU.
+  key splitting, and a greedy `argmax` fallback at `temperature 0`.
+- **KV-cached decoding for CPU speed** — naive generation recomputes the whole context
+  window for every new token; this uses a **KV cache** (`decode=True`) so each step is a
+  single-token, `jit`-compiled forward pass. On CPU, where every FLOP is felt, that turns
+  the quadratic per-token cost into a constant one and is the difference between usable
+  and painfully slow.
 - **CPU-only, zero-setup runnable** — a ~1,000-story TinyStories slice is committed, and
   every dependency installs as a prebuilt wheel on native Windows Python 3.13 (no WSL).
 - **Checkpointing** — Orbax save/restore pinned to CPU sharding, so a model trained in
@@ -46,10 +49,9 @@ clean, installable Python package with a command-line interface.
 
 ### Architecture note
 
-The transformer block here is **attention-only** (a residual connection around
-multi-head self-attention), matching the course's introductory model exactly. It does
-**not** include a feed-forward network, layer normalisation, or dropout. This keeps it
-faithful to the course; it is intentionally minimal, not a production architecture.
+The transformer block is **attention-only** — a residual connection around multi-head
+self-attention, with no feed-forward network, layer norm, or dropout. That's deliberate,
+not an omission: it's the minimal block, kept minimal.
 
 ## Modules
 
@@ -128,8 +130,8 @@ Trains on a slice of TinyStories and writes a checkpoint:
 python -m minigpt train
 ```
 
-The defaults train on all 1000 bundled stories for 20 epochs (a few minutes on CPU).
-For a fast pipeline check, shrink it: `--max-stories 100 --epochs 3`.
+The defaults train on all 1000 bundled stories for 20 epochs — budget ~20 minutes on a
+laptop CPU. For a fast pipeline check, shrink it: `--max-stories 100 --epochs 3`.
 
 Common flags: `--data-path`, `--checkpoint-path`, `--max-stories`, `--epochs`,
 `--batch-size`, `--peak-lr`, `--shuffle`, plus architecture flags (`--embed-dim`,
@@ -171,10 +173,13 @@ python -m minigpt demo --checkpoint minigpt_checkpoint.orbax
 uv run python -m pytest
 ```
 
-The suite (11 tests) covers the model forward-pass shape, the dataset padding and
-batch shapes, generation (returns a string, is deterministic for a fixed seed,
-and falls back to greedy decoding at `temperature 0`), and graceful Ctrl-C shutdown
-of the demo CLI. It runs on CPU in seconds and needs no checkpoint.
+The suite (14 tests) covers the model forward-pass shape and its causal mask, the
+dataset padding and truncation (including that a truncated story still ends in the
+end-of-text token), the padding-masked loss (padding positions are ignored, and an
+all-padding batch stays finite), generation (returns a string, is deterministic for a
+fixed seed, and falls back to greedy decoding at `temperature 0`), that KV-cached decode
+produces the same logits as a full-sequence forward pass, and graceful Ctrl-C shutdown of
+the demo CLI. It runs on CPU in seconds and needs no checkpoint.
 
 ## Data
 
