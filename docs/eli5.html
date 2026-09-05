@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MiniGPT-JAX — ELI5</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #f0f4ff;
+    color: #1e1e2e;
+    line-height: 1.5;
+  }
+
+  /* ── Hero ── */
+  .hero {
+    background: linear-gradient(135deg, #c7d2fe 0%, #fce7f3 50%, #d1fae5 100%);
+    padding: 64px 24px 56px;
+    text-align: center;
+  }
+  .hero-emoji { font-size: 96px; display: block; margin-bottom: 16px; }
+  .hero h1 {
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 900;
+    letter-spacing: -1px;
+    color: #312e81;
+    margin-bottom: 12px;
+  }
+  .hero p {
+    font-size: clamp(1rem, 2.5vw, 1.3rem);
+    color: #4338ca;
+    max-width: 560px;
+    margin: 0 auto;
+    font-weight: 500;
+  }
+
+  /* ── Layout ── */
+  .page { max-width: 960px; margin: 0 auto; padding: 48px 24px 80px; }
+  .section { margin-bottom: 64px; }
+
+  .section-title {
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    font-weight: 800;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-title .num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    font-size: 1rem;
+    font-weight: 900;
+    color: #fff;
+    flex-shrink: 0;
+  }
+
+  /* ── Cards ── */
+  .card {
+    background: #fff;
+    border-radius: 20px;
+    padding: 28px 32px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+    margin-bottom: 16px;
+  }
+  .card-grid {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+  .card-mini {
+    background: #fff;
+    border-radius: 16px;
+    padding: 24px 20px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.07);
+    text-align: center;
+  }
+  .card-mini .big-emoji { font-size: 48px; display: block; margin-bottom: 10px; }
+  .card-mini h3 { font-size: 1rem; font-weight: 800; margin-bottom: 6px; color: #1e1e2e; }
+  .card-mini p { font-size: 0.88rem; color: #4b5563; }
+
+  /* bullet lists inside cards */
+  .bullet-list { list-style: none; padding: 0; }
+  .bullet-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 6px 0;
+    font-size: 1rem;
+    color: #374151;
+    border-bottom: 1px solid #f3f4f6;
+  }
+  .bullet-list li:last-child { border-bottom: none; }
+  .bullet-list li .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 7px;
+  }
+
+  /* ── Flow diagram ── */
+  .flow-wrap {
+    background: #fff;
+    border-radius: 20px;
+    padding: 32px 24px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+    overflow-x: auto;
+  }
+  .flow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    flex-wrap: nowrap;
+    min-width: 560px;
+  }
+  .flow-node {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    min-width: 100px;
+  }
+  .flow-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 96px; height: 96px;
+    border-radius: 20px;
+    font-size: 32px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+    gap: 0;
+  }
+  .flow-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #374151;
+    text-align: center;
+    max-width: 96px;
+  }
+  .flow-sublabel {
+    font-size: 0.68rem;
+    color: #9ca3af;
+    text-align: center;
+    max-width: 96px;
+  }
+  .flow-arrow {
+    font-size: 1.8rem;
+    color: #a5b4fc;
+    padding: 0 4px;
+    flex-shrink: 0;
+    line-height: 96px;
+    margin-bottom: 28px;
+  }
+
+  /* ── Architecture layers ── */
+  .arch-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .arch-layer {
+    border-radius: 14px;
+    padding: 16px 22px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+  .arch-layer .layer-icon { font-size: 1.6rem; flex-shrink: 0; }
+  .arch-layer .layer-text { color: #1e1e2e; }
+  .arch-layer .layer-sub { font-weight: 400; font-size: 0.8rem; color: #6b7280; margin-top: 2px; }
+
+  /* ── Sampling visual ── */
+  .temp-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+  }
+  .temp-card {
+    border-radius: 18px;
+    padding: 22px 18px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .temp-card .thermo { font-size: 40px; margin-bottom: 8px; display: block; }
+  .temp-card h3 { font-size: 1rem; font-weight: 800; margin-bottom: 6px; }
+  .temp-card .val {
+    display: inline-block;
+    padding: 3px 12px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+  .temp-card p { font-size: 0.82rem; color: #374151; }
+  .word-row { display: flex; gap: 5px; justify-content: center; flex-wrap: wrap; margin-top: 10px; }
+  .word-chip {
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #fff;
+  }
+
+  /* top-k */
+  .topk-vis {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 4px;
+  }
+  .bar-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.85rem;
+  }
+  .bar-label { width: 70px; text-align: right; font-weight: 600; color: #374151; flex-shrink: 0; }
+  .bar-track { flex: 1; background: #f3f4f6; border-radius: 999px; height: 18px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 999px; }
+  .bar-pct { width: 36px; font-size: 0.75rem; color: #6b7280; flex-shrink: 0; }
+  .bar-cut { border: 2px dashed #f87171; border-radius: 4px; padding: 4px 8px; font-size: 0.75rem; color: #ef4444; font-weight: 700; margin-top: 4px; }
+
+  /* ── CLI ── */
+  .cli-block {
+    background: #1e1e2e;
+    border-radius: 14px;
+    padding: 20px 24px;
+    margin-bottom: 12px;
+    font-family: "Fira Code", "Consolas", monospace;
+    font-size: 0.88rem;
+    overflow-x: auto;
+  }
+  .cli-comment { color: #6272a4; }
+  .cli-cmd { color: #50fa7b; }
+  .cli-flag { color: #8be9fd; }
+  .cli-val { color: #f1fa8c; }
+  .cli-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1rem;
+    font-weight: 800;
+    margin-bottom: 8px;
+    color: #1e1e2e;
+  }
+  .cli-title .badge {
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  /* ── Gradio ── */
+  .gradio-mock {
+    background: #fff;
+    border-radius: 20px;
+    border: 2px solid #e0e7ff;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  }
+  .gradio-topbar {
+    background: linear-gradient(90deg, #6366f1, #8b5cf6);
+    padding: 14px 24px;
+    color: #fff;
+    font-weight: 800;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .gradio-body { padding: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .gradio-field label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #6b7280;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .gradio-textbox {
+    background: #f9fafb;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 0.9rem;
+    color: #374151;
+    width: 100%;
+  }
+  .gradio-slider-wrap { display: flex; flex-direction: column; gap: 8px; }
+  .gradio-slider { width: 100%; accent-color: #6366f1; }
+  .slider-row { display: flex; align-items: center; gap: 10px; }
+  .slider-val {
+    background: #ede9fe;
+    color: #4f46e5;
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    min-width: 40px;
+    text-align: center;
+  }
+  .gradio-btn {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    background: linear-gradient(90deg, #6366f1, #8b5cf6);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 800;
+    cursor: pointer;
+    margin-top: 4px;
+    text-align: center;
+  }
+  .gradio-output {
+    background: #f0fdf4;
+    border: 1.5px solid #bbf7d0;
+    border-radius: 10px;
+    padding: 14px;
+    font-size: 0.9rem;
+    color: #166534;
+    line-height: 1.7;
+    min-height: 100px;
+  }
+  .gradio-span { grid-column: 1 / -1; }
+
+  /* ── Config table ── */
+  .config-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+  .config-table th {
+    background: #f5f3ff;
+    color: #5b21b6;
+    font-weight: 700;
+    text-align: left;
+    padding: 10px 16px;
+    border-bottom: 2px solid #ede9fe;
+  }
+  .config-table td {
+    padding: 10px 16px;
+    border-bottom: 1px solid #f3f4f6;
+    color: #374151;
+    vertical-align: top;
+  }
+  .config-table tr:last-child td { border-bottom: none; }
+  .config-table .mono {
+    font-family: "Fira Code", "Consolas", monospace;
+    font-size: 0.82rem;
+    color: #7c3aed;
+    background: #faf5ff;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  /* colour palette tokens */
+  .c-purple { background: #7c3aed; }
+  .c-pink   { background: #db2777; }
+  .c-green  { background: #059669; }
+  .c-blue   { background: #2563eb; }
+  .c-orange { background: #d97706; }
+  .c-teal   { background: #0891b2; }
+
+  .bg-purple { background: #ede9fe; }
+  .bg-pink   { background: #fce7f3; }
+  .bg-green  { background: #d1fae5; }
+  .bg-blue   { background: #dbeafe; }
+  .bg-orange { background: #fef3c7; }
+  .bg-teal   { background: #cffafe; }
+
+  .text-purple { color: #5b21b6; }
+  .text-pink   { color: #9d174d; }
+  .text-green  { color: #065f46; }
+  .text-blue   { color: #1e40af; }
+
+  .dot-purple { background: #7c3aed; }
+  .dot-pink   { background: #db2777; }
+  .dot-green  { background: #059669; }
+  .dot-blue   { background: #2563eb; }
+  .dot-orange { background: #d97706; }
+
+  /* temp card colours */
+  .temp-cold  { background: #eff6ff; border: 2px solid #bfdbfe; }
+  .temp-warm  { background: #fef3c7; border: 2px solid #fde68a; }
+  .temp-hot   { background: #fff1f2; border: 2px solid #fecdd3; }
+
+  .val-cold { background: #2563eb; }
+  .val-warm { background: #d97706; }
+  .val-hot  { background: #e11d48; }
+
+  /* footer */
+  footer {
+    text-align: center;
+    padding: 32px 24px;
+    font-size: 0.82rem;
+    color: #9ca3af;
+    border-top: 1px solid #e5e7eb;
+    background: #fff;
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════ HERO ═══════════════════════════════════ -->
+<div class="hero">
+  <span class="hero-emoji">🧠✨</span>
+  <h1>MiniGPT-JAX</h1>
+  <p>A tiny brain that learns to write children's stories — explained in plain English.</p>
+</div>
+
+<div class="page">
+
+  <!-- ══════════════════════ 1. WHAT IS IT ══════════════════════ -->
+  <div class="section">
+    <div class="section-title">
+      <span class="num c-purple">1</span>
+      What is MiniGPT-JAX?
+    </div>
+
+    <div class="card-grid">
+      <div class="card-mini">
+        <span class="big-emoji">📖</span>
+        <h3>It reads stories</h3>
+        <p>It learns from 1,000 short children's stories called TinyStories.</p>
+      </div>
+      <div class="card-mini">
+        <span class="big-emoji">🎛️</span>
+        <h3>It has dials</h3>
+        <p>Millions of numbers ("weights") that get adjusted during training.</p>
+      </div>
+      <div class="card-mini">
+        <span class="big-emoji">✍️</span>
+        <h3>It writes new text</h3>
+        <p>Given a prompt, it predicts the next word — over and over.</p>
+      </div>
+      <div class="card-mini">
+        <span class="big-emoji">⚡</span>
+        <h3>Powered by JAX</h3>
+        <p>JAX is like NumPy on turbo — runs fast on CPU, GPU, or TPU.</p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <div class="arch-stack">
+        <div class="arch-layer bg-purple">
+          <span class="layer-icon">🔤</span>
+          <div>
+            <div class="layer-text">Token + Position Embedding</div>
+            <div class="layer-sub">Words → numbers the model can do maths on</div>
+          </div>
+        </div>
+        <div class="arch-layer bg-blue">
+          <span class="layer-icon">🔁</span>
+          <div>
+            <div class="layer-text">6 × Transformer Block (Multi-Head Attention)</div>
+            <div class="layer-sub">Each block lets every word look at every word before it</div>
+          </div>
+        </div>
+        <div class="arch-layer bg-green">
+          <span class="layer-icon">📊</span>
+          <div>
+            <div class="layer-text">Linear Output Layer → 50,257 scores</div>
+            <div class="layer-sub">One score per word in the GPT-2 vocabulary</div>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:14px; font-size:0.82rem; color:#6b7280; display:flex; gap:20px; flex-wrap:wrap;">
+        <span>📐 Embed dim: <strong>192</strong></span>
+        <span>🗣️ Heads: <strong>6</strong></span>
+        <span>🏗️ Blocks: <strong>6</strong></span>
+        <span>📏 Max context: <strong>128 tokens</strong></span>
+        <span>📚 Vocab: <strong>50,257 tokens</strong></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════ 2. TRAINING FLOW ══════════════════════ -->
+  <div class="section">
+    <div class="section-title">
+      <span class="num c-pink">2</span>
+      The big picture — from stories to checkpoint
+    </div>
+
+    <div class="flow-wrap">
+      <div class="flow">
+        <div class="flow-node">
+          <div class="flow-box bg-orange">📚</div>
+          <div class="flow-label">TinyStories</div>
+          <div class="flow-sublabel">1,000 stories</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node">
+          <div class="flow-box bg-teal">🔢</div>
+          <div class="flow-label">Tokenise</div>
+          <div class="flow-sublabel">words → token IDs</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node">
+          <div class="flow-box bg-purple">🏋️</div>
+          <div class="flow-label">Train</div>
+          <div class="flow-sublabel">20 epochs, AdamW</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node">
+          <div class="flow-box bg-blue">💾</div>
+          <div class="flow-label">Checkpoint</div>
+          <div class="flow-sublabel">Orbax on disk</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node">
+          <div class="flow-box bg-pink">✨</div>
+          <div class="flow-label">Generate</div>
+          <div class="flow-sublabel">new story text</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <ul class="bullet-list">
+        <li><span class="dot dot-orange"></span>Reads all stories as one long stream of tokens.</li>
+        <li><span class="dot dot-teal" style="background:#0891b2"></span>Chops it into fixed-length windows of 128 tokens each (batches of 24).</li>
+        <li><span class="dot dot-purple"></span>For each window: predict the next token, measure how wrong it was (<em>cross-entropy loss</em>), nudge the weights to be less wrong.</li>
+        <li><span class="dot dot-blue"></span>Learning rate warms up for 10% of steps, then cosine-decays from 3e-4 → 1e-5.</li>
+        <li><span class="dot dot-pink"></span>After 20 full passes through the data the weights are saved to <code>minigpt_checkpoint.orbax</code>.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ══════════════════════ 3. GENERATION + SAMPLING ══════════════════════ -->
+  <div class="section">
+    <div class="section-title">
+      <span class="num c-green">3</span>
+      How does it write a story?
+    </div>
+
+    <div class="card">
+      <ul class="bullet-list">
+        <li><span class="dot dot-purple"></span><strong>Step 1 — Encode:</strong> "Once upon a time" → <code>[7454, 2402, 257, 640]</code></li>
+        <li><span class="dot dot-blue"></span><strong>Step 2 — Forward pass:</strong> tokens go through all 6 transformer blocks.</li>
+        <li><span class="dot dot-green"></span><strong>Step 3 — Scores:</strong> model outputs a score for all 50,257 words.</li>
+        <li><span class="dot dot-orange"></span><strong>Step 4 — Top-K filter:</strong> keep only the top 40 words, set the rest to −∞.</li>
+        <li><span class="dot dot-pink"></span><strong>Step 5 — Sample:</strong> pick one word randomly, weighted by the scores.</li>
+        <li><span class="dot" style="background:#0891b2"></span><strong>Step 6 — Repeat:</strong> append the new token and go back to Step 2.</li>
+        <li><span class="dot dot-purple"></span>Stop when we hit the <code>&lt;|endoftext|&gt;</code> token or the max token limit.</li>
+      </ul>
+    </div>
+
+    <!-- Temperature visual -->
+    <div style="margin-top:24px; margin-bottom:8px; font-size:1.05rem; font-weight:800; color:#374151;">🌡️ Temperature — boring ↔ creative dial</div>
+    <div class="temp-grid">
+      <div class="temp-card temp-cold">
+        <span class="thermo">🥶</span>
+        <h3>Low (0.1 – 0.5)</h3>
+        <span class="val val-cold">safe &amp; predictable</span>
+        <p>Almost always picks the most likely word. Very repetitive.</p>
+        <div class="word-row">
+          <span class="word-chip" style="background:#2563eb;opacity:0.9">the</span>
+          <span class="word-chip" style="background:#2563eb;opacity:0.7">and</span>
+          <span class="word-chip" style="background:#2563eb;opacity:0.4">was</span>
+        </div>
+      </div>
+      <div class="temp-card temp-warm">
+        <span class="thermo">😊</span>
+        <h3>Medium (0.7 – 0.9)</h3>
+        <span class="val val-warm">sweet spot</span>
+        <p>Coherent sentences with some variety. Default is 0.8.</p>
+        <div class="word-row">
+          <span class="word-chip" style="background:#d97706;opacity:0.9">said</span>
+          <span class="word-chip" style="background:#d97706;opacity:0.75">ran</span>
+          <span class="word-chip" style="background:#d97706;opacity:0.55">happy</span>
+          <span class="word-chip" style="background:#d97706;opacity:0.4">little</span>
+        </div>
+      </div>
+      <div class="temp-card temp-hot">
+        <span class="thermo">🔥</span>
+        <h3>High (1.2 – 1.5)</h3>
+        <span class="val val-hot">wild &amp; creative</span>
+        <p>Surprising words. Can go off-rails quickly!</p>
+        <div class="word-row">
+          <span class="word-chip" style="background:#e11d48;opacity:0.9">elephant</span>
+          <span class="word-chip" style="background:#e11d48;opacity:0.7">zoomed</span>
+          <span class="word-chip" style="background:#e11d48;opacity:0.55">purple</span>
+          <span class="word-chip" style="background:#e11d48;opacity:0.7">wiggled</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top-K visual -->
+    <div class="card" style="margin-top:20px;">
+      <div style="font-weight:800; font-size:1rem; margin-bottom:14px; color:#1e1e2e;">🎯 Top-K = 40 — only the 40 most likely words are on the table</div>
+      <div class="topk-vis">
+        <div class="bar-row">
+          <div class="bar-label">said</div>
+          <div class="bar-track"><div class="bar-fill" style="width:72%; background:#6366f1;"></div></div>
+          <div class="bar-pct">72%</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">ran</div>
+          <div class="bar-track"><div class="bar-fill" style="width:48%; background:#8b5cf6;"></div></div>
+          <div class="bar-pct">48%</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">smiled</div>
+          <div class="bar-track"><div class="bar-fill" style="width:29%; background:#a78bfa;"></div></div>
+          <div class="bar-pct">29%</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">walked</div>
+          <div class="bar-track"><div class="bar-fill" style="width:18%; background:#c4b5fd;"></div></div>
+          <div class="bar-pct">18%</div>
+        </div>
+        <div class="bar-row" style="opacity:0.35;">
+          <div class="bar-label" style="color:#9ca3af;">…36 more</div>
+          <div class="bar-track"><div class="bar-fill" style="width:12%; background:#e5e7eb;"></div></div>
+          <div class="bar-pct" style="color:#d1d5db;">…</div>
+        </div>
+        <div class="bar-cut">✂️ Words ranked 41+ get score = −∞ → probability 0 → never chosen</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════ 4. CLI ══════════════════════ -->
+  <div class="section">
+    <div class="section-title">
+      <span class="num c-blue">4</span>
+      CLI Commands
+    </div>
+    <p style="color:#6b7280; margin-bottom:20px; font-size:0.95rem;">Three commands, one module: <code>python -m minigpt &lt;command&gt;</code></p>
+
+    <!-- Train -->
+    <div class="card">
+      <div class="cli-title">
+        <span>🏋️</span> train
+        <span class="badge c-orange">Step 1</span>
+      </div>
+      <div class="cli-block">
+        <div class="cli-comment"># Train on 1,000 TinyStories for 20 epochs</div>
+        <div><span class="cli-cmd">python -m minigpt train</span> \</div>
+        <div>&nbsp;&nbsp;<span class="cli-flag">--data</span> <span class="cli-val">data/TinyStories-1000.txt</span> \</div>
+        <div>&nbsp;&nbsp;<span class="cli-flag">--epochs</span> <span class="cli-val">20</span> \</div>
+        <div>&nbsp;&nbsp;<span class="cli-flag">--checkpoint</span> <span class="cli-val">minigpt_checkpoint.orbax</span></div>
+      </div>
+      <ul class="bullet-list">
+        <li><span class="dot dot-purple"></span>Reads and tokenises the text file.</li>
+        <li><span class="dot dot-blue"></span>Runs AdamW with cosine LR schedule.</li>
+        <li><span class="dot dot-green"></span>Saves weights to disk when done.</li>
+      </ul>
+    </div>
+
+    <!-- Generate -->
+    <div class="card">
+      <div class="cli-title">
+        <span>✍️</span> generate
+        <span class="badge c-green">Step 2</span>
+      </div>
+      <div class="cli-block">
+        <div class="cli-comment"># Continue a story from a prompt</div>
+        <div><span class="cli-cmd">python -m minigpt generate</span> \</div>
+        <div>&nbsp;&nbsp;<span class="cli-flag">--checkpoint</span> <span class="cli-val">minigpt_checkpoint.orbax</span> \</div>
+        <div>&nbsp;&nbsp;<span class="cli-flag">--prompt</span> <span class="cli-val">"Once upon a time"</span> \</div>
+        <div>&nbsp;&nbsp;<span class="cli-flag">--temperature</span> <span class="cli-val">0.8</span> \</div>
+        <div>&nbsp;&nbsp;<span class="cli-flag">--top-k</span> <span class="cli-val">40</span> \</div>
+        <div>&nbsp;&nbsp;<span class="cli-flag">--max-new-tokens</span> <span class="cli-val">80</span></div>
+      </div>
+    </div>
+
+    <!-- Demo -->
+    <div class="card">
+      <div class="cli-title">
+        <span>🌐</span> demo
+        <span class="badge c-purple">Web UI</span>
+      </div>
+      <div class="cli-block">
+        <div class="cli-comment"># Launch Gradio web interface</div>
+        <div><span class="cli-cmd">python -m minigpt demo</span> \</div>
+        <div>&nbsp;&nbsp;<span class="cli-flag">--checkpoint</span> <span class="cli-val">minigpt_checkpoint.orbax</span> \</div>
+        <div>&nbsp;&nbsp;<span class="cli-flag">--share</span>  <span class="cli-comment"># optional: public link</span></div>
+      </div>
+    </div>
+
+    <!-- Config reference -->
+    <div class="card">
+      <div style="font-weight:800; font-size:1rem; margin-bottom:14px;">⚙️ Key defaults (from <code>config.py</code>)</div>
+      <table class="config-table">
+        <thead><tr><th>Parameter</th><th>Default</th><th>What it does</th></tr></thead>
+        <tbody>
+          <tr><td>batch_size</td><td><span class="mono">24</span></td><td>Stories processed together per step</td></tr>
+          <tr><td>num_epochs</td><td><span class="mono">20</span></td><td>Full passes over the dataset</td></tr>
+          <tr><td>peak_lr</td><td><span class="mono">3e-4</span></td><td>Maximum learning rate (AdamW)</td></tr>
+          <tr><td>warmup_fraction</td><td><span class="mono">0.1</span></td><td>First 10% of steps — LR ramps up</td></tr>
+          <tr><td>max_stories</td><td><span class="mono">1000</span></td><td>How many stories to load</td></tr>
+          <tr><td>temperature</td><td><span class="mono">0.8</span></td><td>Randomness of sampling</td></tr>
+          <tr><td>top_k</td><td><span class="mono">40</span></td><td>Only sample from top-40 tokens</td></tr>
+          <tr><td>max_new_tokens</td><td><span class="mono">30</span></td><td>Max words to generate</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══════════════════════ 5. GRADIO ══════════════════════ -->
+  <div class="section">
+    <div class="section-title">
+      <span class="num c-teal" style="background:#0891b2">5</span>
+      Gradio Web UI
+    </div>
+    <p style="color:#6b7280; margin-bottom:20px; font-size:0.95rem;">Run <code>python -m minigpt demo --checkpoint ...</code> and open <strong>http://127.0.0.1:7860</strong></p>
+
+    <div class="gradio-mock">
+      <div class="gradio-topbar">
+        🌐 MiniGPT-JAX Demo
+        <span style="font-weight:400; font-size:0.8rem; opacity:0.8; margin-left:auto;">Running on http://127.0.0.1:7860</span>
+      </div>
+      <div class="gradio-body">
+        <!-- Inputs col -->
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <div class="gradio-field">
+            <label>Story Prompt</label>
+            <div class="gradio-textbox">Once upon a time, a little rabbit…</div>
+          </div>
+          <div class="gradio-field">
+            <label>Temperature</label>
+            <div class="gradio-slider-wrap">
+              <div class="slider-row">
+                <input type="range" class="gradio-slider" min="1" max="150" value="80" />
+                <span class="slider-val">0.80</span>
+              </div>
+              <div style="display:flex; justify-content:space-between; font-size:0.7rem; color:#9ca3af;">
+                <span>0.01 boring</span><span>1.50 wild</span>
+              </div>
+            </div>
+          </div>
+          <div class="gradio-field">
+            <label>Max Tokens</label>
+            <div class="gradio-slider-wrap">
+              <div class="slider-row">
+                <input type="range" class="gradio-slider" min="1" max="200" value="30" />
+                <span class="slider-val">30</span>
+              </div>
+            </div>
+          </div>
+          <div class="gradio-field">
+            <label>Top-K (0 = off)</label>
+            <div class="gradio-slider-wrap">
+              <div class="slider-row">
+                <input type="range" class="gradio-slider" min="0" max="100" value="40" />
+                <span class="slider-val">40</span>
+              </div>
+            </div>
+          </div>
+          <div class="gradio-btn">Submit ✨</div>
+        </div>
+        <!-- Output col -->
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <div class="gradio-field">
+            <label>Output</label>
+            <div class="gradio-output">
+              Once upon a time, a little rabbit found a shiny red ball in the meadow. She picked it up and hopped all the way home to show her mother. "Look what I found!" she said, her ears twitching with joy.
+              <span style="opacity:0.4">▌</span>
+            </div>
+          </div>
+          <div style="background:#f9fafb; border:1.5px solid #e5e7eb; border-radius:10px; padding:14px; font-size:0.8rem; color:#6b7280; line-height:1.7;">
+            <strong style="color:#374151;">How it works:</strong><br/>
+            Type a prompt → press Submit → the model adds one word at a time until max tokens or end-of-text.
+            Adjust Temperature and Top-K to taste. Add <code>--share</code> to get a public Gradio link.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════ QUICK RECAP ══════════════════════ -->
+  <div class="section">
+    <div class="section-title">
+      <span style="font-size:1.6rem;">🗺️</span>
+      The whole picture in one glance
+    </div>
+    <div class="card-grid">
+      <div class="card-mini" style="background:#f5f3ff; border:2px solid #ede9fe;">
+        <span class="big-emoji">📚</span>
+        <h3 class="text-purple">Data</h3>
+        <p>1,000 TinyStories. GPT-2 tokenizer. 128-token windows.</p>
+      </div>
+      <div class="card-mini" style="background:#fce7f3; border:2px solid #fbcfe8;">
+        <span class="big-emoji">🧠</span>
+        <h3 class="text-pink">Model</h3>
+        <p>6 Transformer blocks. 192-dim embeddings. ~5 M params.</p>
+      </div>
+      <div class="card-mini" style="background:#d1fae5; border:2px solid #a7f3d0;">
+        <span class="big-emoji">🏋️</span>
+        <h3 class="text-green">Train</h3>
+        <p>AdamW + cosine LR. 20 epochs. Saved with Orbax.</p>
+      </div>
+      <div class="card-mini" style="background:#dbeafe; border:2px solid #bfdbfe;">
+        <span class="big-emoji">✨</span>
+        <h3 class="text-blue">Generate</h3>
+        <p>Token by token. Top-K + temperature sampling.</p>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /page -->
+
+<footer>
+  MiniGPT-JAX · Built with JAX · Flax NNX · Optax · Orbax · tiktoken · Gradio
+</footer>
+
+</body>
+</html>
