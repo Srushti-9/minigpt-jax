@@ -88,12 +88,6 @@ or hits the token budget.
 - Python **3.12+** (developed and verified on 3.13)
 - CPU is sufficient — no GPU required
 
-> **Version note:** dependency versions match the course pins, with one exception:
-> `tiktoken` is bumped from `0.4.0` to `0.9.0`, because `0.4.0` ships no wheel for
-> Python 3.13 (pip would try to compile it from Rust source and fail). The `gpt2`
-> encoding API used here is unchanged between those versions. `grain==0.2.13` provides
-> a native Windows wheel for Python 3.13, so **no WSL is needed**.
-
 ## Install
 
 `uv sync` creates the `.venv` and installs the exact locked versions from `uv.lock`:
