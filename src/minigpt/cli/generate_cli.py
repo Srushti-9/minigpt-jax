@@ -26,6 +26,9 @@ def main():
     parser.add_argument("--prompt", default="Once upon a time")
     parser.add_argument("--max-new-tokens", type=int, default=30)
     parser.add_argument("--temperature", type=float, default=0.8)
+    parser.add_argument("--top-k", type=int, default=40,
+                        help="Sample from the top K tokens (0 disables top-k).")
+    parser.add_argument("--seed", type=int, default=0, help="Sampling RNG seed.")
     parser.add_argument("--maxlen", type=int, default=ModelConfig.maxlen)
     parser.add_argument("--embed-dim", type=int, default=ModelConfig.embed_dim)
     parser.add_argument("--num-heads", type=int, default=ModelConfig.num_heads)
@@ -39,6 +42,7 @@ def main():
     text = generate_story(
         model, tokenizer, args.prompt,
         temperature=args.temperature, max_new_tokens=args.max_new_tokens,
+        top_k=args.top_k, seed=args.seed,
     )
     print("\n--- Generated ---")
     print(text)

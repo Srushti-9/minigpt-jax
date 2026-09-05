@@ -31,18 +31,20 @@ def main():
     model = MiniGPT(cfg, rngs=nnx.Rngs(0))
     load_checkpoint(model, args.checkpoint)
 
-    def create_story(story_prompt, temperature, max_new_tokens):
+    def create_story(story_prompt, temperature, max_new_tokens, top_k):
         return generate_story(
             model, tokenizer, story_prompt,
             temperature=temperature, max_new_tokens=int(max_new_tokens),
+            top_k=int(top_k),
         )
 
     demo = gr.Interface(
         fn=create_story,
         inputs=[
             gr.Textbox(label="Story Prompt"),
-            gr.Slider(minimum=0.01, maximum=1.0, value=0.8, step=0.01, label="Temperature"),
+            gr.Slider(minimum=0.01, maximum=1.5, value=0.8, step=0.01, label="Temperature"),
             gr.Slider(minimum=1, maximum=200, value=30, step=1, label="Max Tokens"),
+            gr.Slider(minimum=0, maximum=100, value=40, step=1, label="Top-K (0 = off)"),
         ],
         outputs=["text"],
     )

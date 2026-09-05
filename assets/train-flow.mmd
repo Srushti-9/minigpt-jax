@@ -1,0 +1,29 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#0ea5e9', 'primaryTextColor': '#fff', 'primaryBorderColor': '#0284c7', 'lineColor': '#94a3b8', 'secondaryColor': '#f0f9ff', 'tertiaryColor': '#e0f2fe', 'background': '#0f172a', 'mainBkg': '#1e293b', 'nodeBorder': '#0ea5e9', 'clusterBkg': '#1e293b', 'titleColor': '#e2e8f0', 'edgeLabelBackground': '#1e293b', 'fontFamily': 'ui-monospace, monospace'}}}%%
+sequenceDiagram
+    actor User
+    participant CLI as 🖥️ CLI
+    participant Data as 🗂️ Grain loader
+    participant Trainer as 🔁 Train loop
+    participant Step as ⚡ JIT step
+    participant Model as 🧠 MiniGPT
+    participant Orbax as 💾 Orbax
+
+    User->>CLI: python -m minigpt train
+    CLI->>Data: load_and_preprocess_data()
+    Data->>Data: tokenize + right-pad to maxlen
+    Data-->>Trainer: DataLoader (batches)
+
+    loop each batch, every epoch
+        Trainer->>Trainer: shift tokens left → targets
+        Trainer->>Step: train_step(model, opt, batch)
+        Step->>Model: forward → logits
+        Model-->>Step: (B, T, vocab)
+        Step->>Step: masked cross-entropy (ignore pad 0)
+        Step->>Step: value_and_grad → grads
+        Step->>Model: AdamW update (cosine LR)
+        Step-->>Trainer: loss metric
+    end
+
+    Trainer->>Orbax: save_checkpoint(model)
+    Orbax-->>CLI: minigpt_checkpoint.orbax
+    CLI-->>User: training done

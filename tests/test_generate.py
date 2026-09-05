@@ -31,8 +31,15 @@ def test_generate_story_from_prompt_returns_string():
     assert len(out) > 0
 
 
-def test_generation_is_deterministic_with_fixed_weights():
+def test_sampling_is_deterministic_for_a_fixed_seed():
     model, tokenizer = build()
-    a = generate_text(model, tokenizer, [1, 2, 3], max_new_tokens=8, temperature=1.0)
-    b = generate_text(model, tokenizer, [1, 2, 3], max_new_tokens=8, temperature=1.0)
+    a = generate_text(model, tokenizer, [1, 2, 3], max_new_tokens=8, temperature=1.0, seed=7)
+    b = generate_text(model, tokenizer, [1, 2, 3], max_new_tokens=8, temperature=1.0, seed=7)
+    assert a == b
+
+
+def test_greedy_decoding_when_temperature_is_zero():
+    model, tokenizer = build()
+    a = generate_text(model, tokenizer, [1, 2, 3], max_new_tokens=8, temperature=0.0, seed=1)
+    b = generate_text(model, tokenizer, [1, 2, 3], max_new_tokens=8, temperature=0.0, seed=99)
     assert a == b

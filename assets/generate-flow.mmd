@@ -1,0 +1,28 @@
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#8b5cf6', 'primaryTextColor': '#fff', 'primaryBorderColor': '#7c3aed', 'lineColor': '#94a3b8', 'secondaryColor': '#faf5ff', 'tertiaryColor': '#ede9fe', 'background': '#0f172a', 'mainBkg': '#1e293b', 'nodeBorder': '#8b5cf6', 'clusterBkg': '#1e293b', 'titleColor': '#e2e8f0', 'edgeLabelBackground': '#1e293b', 'fontFamily': 'ui-monospace, monospace'}}}%%
+graph LR
+    subgraph Prep["  1 · Prompt  "]
+        P["📝 Prompt text"] --> TOK["🔤 tiktoken encode\n→ start tokens"]
+    end
+
+    subgraph Loop["  2 · Autoregressive loop  "]
+        TOK --> CTX["✂️ last maxlen tokens\n+ right-pad"]
+        CTX --> FWD["🧠 MiniGPT forward"]
+        FWD --> LOGITS["📊 logits at last\nreal position"]
+        LOGITS --> SAMPLE["🎲 sample next token"]
+        SAMPLE --> APPEND["➕ append token"]
+        APPEND --> CTX
+    end
+
+    subgraph Sample["  3 · Sampling rule  "]
+        SAMPLE -.-> T0{"temperature\n= 0 ?"}
+        T0 -- yes --> GREEDY["🎯 argmax (greedy)"]
+        T0 -- no --> SCALE["🌡️ logits ÷ temperature"]
+        SCALE --> TOPK["🔝 top-k mask"]
+        TOPK --> CAT["🎲 categorical draw"]
+    end
+
+    subgraph Out["  4 · Output  "]
+        APPEND --> EOT{"end-of-text\nor max tokens?"}
+        EOT -- yes --> DEC["🔡 tiktoken decode"]
+        DEC --> STORY["📖 generated story"]
+    end

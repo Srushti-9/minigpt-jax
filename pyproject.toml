@@ -20,7 +20,7 @@ dependencies = [
     "matplotlib==3.10.8",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = ["pytest==8.3.4"]
 
 [tool.setuptools.packages.find]

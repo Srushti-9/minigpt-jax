@@ -11,7 +11,9 @@ from .model import MiniGPT
 def loss_fn(model, batch):
     inputs, targets = batch
     logits = model(inputs)
-    loss = optax.softmax_cross_entropy_with_integer_labels(logits, targets).mean()
+    token_loss = optax.softmax_cross_entropy_with_integer_labels(logits, targets)
+    mask = (targets != 0).astype(token_loss.dtype)
+    loss = (token_loss * mask).sum() / jnp.clip(mask.sum(), min=1.0)
     return loss, logits
 
 

@@ -18,9 +18,9 @@ class ModelConfig:
 class TrainConfig:
     data_path: str = "data/TinyStories-1000.txt"
     checkpoint_path: str = "minigpt_checkpoint.orbax"
-    max_stories: int = 100
+    max_stories: int = 1000
     batch_size: int = 24
-    num_epochs: int = 3
+    num_epochs: int = 20
     peak_lr: float = 3e-4
     end_lr: float = 1e-5
     weight_decay: float = 0.01
