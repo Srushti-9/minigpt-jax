@@ -8,6 +8,7 @@ dist/
 
 # Virtual env
 .venv/
+.uvvenv/
 venv/
 
 # Model checkpoints (regenerable, large)
@@ -21,3 +22,7 @@ venv/
 
 # Test / cache
 .pytest_cache/
+
+# Secrets
+.env
+.env.*
