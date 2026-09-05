@@ -48,7 +48,10 @@ def main():
         ],
         outputs=["text"],
     )
-    demo.launch(share=args.share)
+    try:
+        demo.launch(share=args.share)
+    except KeyboardInterrupt:
+        pass
 
 
 if __name__ == "__main__":
