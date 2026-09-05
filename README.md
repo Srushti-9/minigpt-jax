@@ -167,10 +167,10 @@ python -m minigpt demo --checkpoint minigpt_checkpoint.orbax
 uv run python -m pytest
 ```
 
-The suite (10 tests) covers the model forward-pass shape, the dataset padding and
-batch shapes, and generation (returns a string, is deterministic for a fixed seed,
-and falls back to greedy decoding at `temperature 0`). It runs on CPU in seconds and
-needs no checkpoint.
+The suite (11 tests) covers the model forward-pass shape, the dataset padding and
+batch shapes, generation (returns a string, is deterministic for a fixed seed,
+and falls back to greedy decoding at `temperature 0`), and graceful Ctrl-C shutdown
+of the demo CLI. It runs on CPU in seconds and needs no checkpoint.
 
 ## Data
 
