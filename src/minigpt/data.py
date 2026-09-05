@@ -58,6 +58,7 @@ class StoryDataset:
         tokens = self.tokenizer.encode(story, allowed_special={END_OF_TEXT})
         if len(tokens) > self.maxlen:
             tokens = tokens[: self.maxlen]
+            tokens[-1] = self.end_token
         tokens.extend([0] * (self.maxlen - len(tokens)))
         return tokens
 

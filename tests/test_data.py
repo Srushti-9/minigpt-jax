@@ -26,3 +26,14 @@ def test_short_story_is_right_padded_with_zeros():
     item = ds[0]
     assert len(item) == 32
     assert item[-1] == 0
+
+
+def test_truncated_story_ends_with_end_token():
+    tokenizer = get_tokenizer()
+    long_story = ("the cat sat on the mat " * 50) + "<|endoftext|>"
+    maxlen = 16
+    ds = StoryDataset([long_story], maxlen=maxlen, tokenizer=tokenizer)
+    item = ds[0]
+    end_token = tokenizer.encode("<|endoftext|>", allowed_special={"<|endoftext|>"})[0]
+    assert len(item) == maxlen
+    assert item[maxlen - 1] == end_token
