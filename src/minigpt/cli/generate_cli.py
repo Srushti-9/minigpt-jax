@@ -9,6 +9,27 @@ from ..generate import generate_story
 from .. import get_tokenizer
 
 
+def _non_negative_float(value):
+    f = float(value)
+    if f < 0:
+        raise argparse.ArgumentTypeError(f"must be >= 0, got {f}")
+    return f
+
+
+def _non_negative_int(value):
+    i = int(value)
+    if i < 0:
+        raise argparse.ArgumentTypeError(f"must be >= 0, got {i}")
+    return i
+
+
+def _positive_int(value):
+    i = int(value)
+    if i < 1:
+        raise argparse.ArgumentTypeError(f"must be >= 1, got {i}")
+    return i
+
+
 def build_model(tokenizer, args):
     cfg = ModelConfig(
         vocab_size=tokenizer.n_vocab,
@@ -24,9 +45,9 @@ def main():
     parser = argparse.ArgumentParser(description="Generate text from a trained MiniGPT checkpoint.")
     parser.add_argument("--checkpoint", required=True)
     parser.add_argument("--prompt", default="Once upon a time")
-    parser.add_argument("--max-new-tokens", type=int, default=30)
-    parser.add_argument("--temperature", type=float, default=0.8)
-    parser.add_argument("--top-k", type=int, default=40,
+    parser.add_argument("--max-new-tokens", type=_positive_int, default=30)
+    parser.add_argument("--temperature", type=_non_negative_float, default=0.8)
+    parser.add_argument("--top-k", type=_non_negative_int, default=40,
                         help="Sample from the top K tokens (0 disables top-k).")
     parser.add_argument("--seed", type=int, default=0, help="Sampling RNG seed.")
     parser.add_argument("--maxlen", type=int, default=ModelConfig.maxlen)
