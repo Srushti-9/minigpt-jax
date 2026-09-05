@@ -36,7 +36,9 @@ clean, installable Python package with a command-line interface.
   with a warmup-cosine LR schedule, and a **padding-masked** cross-entropy loss so the
   model learns real tokens instead of padding.
 - **Autoregressive sampling** — temperature scaling with optional top-k, proper PRNG
-  key splitting, and a greedy `argmax` fallback at `temperature 0`.
+  key splitting, and a greedy `argmax` fallback at `temperature 0`. Generation uses a
+  **KV cache** (`decode=True`) so each new token runs a single-token, `jit`-compiled
+  forward step instead of recomputing the whole context window — a large speedup on CPU.
 - **CPU-only, zero-setup runnable** — a ~1,000-story TinyStories slice is committed, and
   every dependency installs as a prebuilt wheel on native Windows Python 3.13 (no WSL).
 - **Checkpointing** — Orbax save/restore pinned to CPU sharding, so a model trained in

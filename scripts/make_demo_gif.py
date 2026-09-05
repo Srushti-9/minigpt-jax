@@ -14,15 +14,18 @@ DOT_R, DOT_Y, DOT_G = (239, 68, 68), (234, 179, 8), (34, 197, 94)
 
 RUNS = [
     ('python -m minigpt generate --prompt "Once upon a time" --temperature 0.4',
-     "Once upon a time, there was a little girl named Tim. She loved to "
-     "play named a little, the always. She was a little, the When her mom "
-     "and was. She was the One day, she was"),
+     "Once upon a time, there was a little girl named Lily. She was very "
+     "very very very play, she was a big with a little girl. She was very "
+     "very go to play in the little girl and was very mom and it. She saw "
+     "a little girl."),
     ('python -m minigpt generate --prompt "The little cat" --temperature 0.5',
-     "The little cat girl named boy Lily her special. She was a going to "
-     "play with her. She had she had her she saw her. She was a her she was a"),
+     "The little cat was a girl called girl when her when she was her park. "
+     "She was very her mom had she was so she was her to her her smile and "
+     "she was very her her mom and she was she saw a her."),
     ('python -m minigpt generate --prompt "Once there was a dog" --temperature 0.5',
-     "Once there was a dog named Tim named Lily. He was a park to friends "
-     "to play with the best a big. One day, day, but he was a big. It was"),
+     "Once there was a dog who was a little girl named He loved to play. "
+     "She found a big with the little always mom. One day, the girl to eat "
+     "she was very very boy. She was of the boy was very happy."),
 ]
 
 
@@ -86,24 +89,27 @@ def draw_state(cmd, cmd_chars, story, story_chars, show_restore):
 frames, durations = [], []
 
 for run_i, (cmd, story) in enumerate(RUNS):
-    for i in range(1, len(cmd) + 1, 3):
+    for i in range(1, len(cmd) + 1, 4):
         frames.append(draw_state(cmd, i, story, 0, False))
-        durations.append(22)
+        durations.append(28)
     frames.append(draw_state(cmd, len(cmd), story, 0, False))
     durations.append(420)
 
     frames.append(draw_state(cmd, len(cmd), story, 0, True))
     durations.append(520)
 
-    for i in range(1, len(story) + 1, 3):
+    for i in range(1, len(story) + 1, 6):
         frames.append(draw_state(cmd, len(cmd), story, i, True))
-        durations.append(38)
+        durations.append(60)
 
     frames.append(draw_state(cmd, len(cmd), story, len(story), True))
     durations.append(2000 if run_i == len(RUNS) - 1 else 1100)
 
-frames[0].save(
-    OUT, save_all=True, append_images=frames[1:],
+palette_frames = [
+    f.convert("P", palette=Image.ADAPTIVE, colors=32) for f in frames
+]
+palette_frames[0].save(
+    OUT, save_all=True, append_images=palette_frames[1:],
     duration=durations, loop=0, optimize=True, disposal=2,
 )
 print(f"wrote {OUT} ({len(frames)} frames, {OUT.stat().st_size // 1024} KB)")
