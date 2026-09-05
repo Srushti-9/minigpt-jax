@@ -61,7 +61,7 @@ def train(model, tokenizer, cfg: TrainConfig):
     for epoch in range(cfg.num_epochs):
         step = 0
         for batch in text_dl:
-            batch_t = jnp.array(jnp.array(batch).T)
+            batch_t = jnp.asarray(batch).T
             input_batch = batch_t.astype(jnp.int32)
             target_batch = prep_target_batch(batch_t).astype(jnp.int32)
             print(".", end="", flush=True)
