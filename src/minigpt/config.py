@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
@@ -8,10 +8,6 @@ class ModelConfig:
     embed_dim: int = 192
     num_heads: int = 6
     num_transformer_blocks: int = 6
-    feed_forward_dim: int = field(init=False)
-
-    def __post_init__(self):
-        object.__setattr__(self, "feed_forward_dim", int(2 / 3 * 4 * self.embed_dim))
 
 
 @dataclass

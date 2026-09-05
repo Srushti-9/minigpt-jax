@@ -9,14 +9,14 @@ class TokenAndPositionEmbedding(nnx.Module):
         self.token_emb = nnx.Embed(vocab_size, embed_dim, rngs=rngs)
         self.pos_emb = nnx.Embed(maxlen, embed_dim, rngs=rngs)
 
-    def __call__(self, x):
+    def __call__(self, x, start_pos=0):
         seq_len = x.shape[1]
-        positions = jnp.arange(seq_len)[None, :]
-        return self.token_emb(x) + self.pos_emb(positions)
+        positions = jnp.arange(seq_len) + start_pos
+        return self.token_emb(x) + self.pos_emb(positions[None, :])
 
 
 class TransformerBlock(nnx.Module):
-    def __init__(self, embed_dim, num_heads, ff_dim, *, rngs):
+    def __init__(self, embed_dim, num_heads, *, rngs):
         self.attention = nnx.MultiHeadAttention(
             num_heads=num_heads,
             in_features=embed_dim,
@@ -38,9 +38,7 @@ class MiniGPT(nnx.Module):
             config.maxlen, config.vocab_size, config.embed_dim, rngs=rngs
         )
         self.transformer_blocks = [
-            TransformerBlock(
-                config.embed_dim, config.num_heads, config.feed_forward_dim, rngs=rngs
-            )
+            TransformerBlock(config.embed_dim, config.num_heads, rngs=rngs)
             for _ in range(config.num_transformer_blocks)
         ]
         self.output_layer = nnx.Linear(
@@ -50,10 +48,18 @@ class MiniGPT(nnx.Module):
     def causal_attention_mask(self, seq_len):
         return jnp.tril(jnp.ones((seq_len, seq_len)))
 
-    def __call__(self, token_ids):
-        seq_len = token_ids.shape[1]
-        mask = self.causal_attention_mask(seq_len)
-        x = self.embedding(token_ids)
+    def init_decode_cache(self, batch_size=1):
+        for block in self.transformer_blocks:
+            block.attention.decode = True
+            block.attention.init_cache((batch_size, self.maxlen, self.embedding.token_emb.features))
+
+    def disable_decode(self):
+        for block in self.transformer_blocks:
+            block.attention.decode = False
+
+    def __call__(self, token_ids, start_pos=0, decode=False):
+        x = self.embedding(token_ids, start_pos=start_pos)
+        mask = None if decode else self.causal_attention_mask(token_ids.shape[1])
         for block in self.transformer_blocks:
             x = block(x, mask=mask)
         return self.output_layer(x)
