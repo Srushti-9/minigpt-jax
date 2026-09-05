@@ -21,6 +21,12 @@ This project is a packaged, runnable version of the model developed in the
 DeepLearning.AI *"LLMs with JAX"* course — reorganised from teaching notebooks into a
 clean, installable Python package with a command-line interface.
 
+![Demo](assets/demo.gif)
+
+> The output above is from the model trained on the bundled 1,000-story slice —
+> word-like and sentence-shaped, but not fully coherent (see the note under
+> [Train](#train)).
+
 ## What it demonstrates
 
 - **A GPT from scratch in Flax NNX** — token + position embedding, a stack of causal
@@ -161,6 +167,8 @@ Launches a local Gradio web UI:
 python -m minigpt demo --checkpoint minigpt_checkpoint.orbax
 ```
 
+![Gradio demo](assets/gradio-demo.png)
+
 ## Tests
 
 ```bash
@@ -177,6 +185,16 @@ of the demo CLI. It runs on CPU in seconds and needs no checkpoint.
 `data/TinyStories-1000.txt` is a ~1,000-story slice of TinyStories, included so the
 project runs with zero setup. It is **not** the full dataset. Stories are separated by
 the `<|endoftext|>` token.
+
+## Acknowledgments
+
+The model architecture, training recipe, and TinyStories workflow come from the
+DeepLearning.AI short course
+[**"LLMs with JAX"**](https://www.deeplearning.ai/short-courses/). This repository
+repackages that course's teaching notebooks into an installable, CPU-runnable Python
+package. Thanks to the [TinyStories](https://huggingface.co/datasets/roneneldan/TinyStories)
+authors for the dataset and to the JAX, Flax, Optax, Grain, and Orbax teams for the
+libraries it's built on.
 
 ## License
 
